@@ -33,6 +33,6 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         goos: ${{ matrix.goos }}
         goarch: ${{ matrix.goarch }}
-        project_path: cmd/certmgr
+        CMD_PATH: cmd/certmgr
         extra_files: LICENSE
         NAME: "go-certapi-${{ matrix.goos }}-${{ matrix.goarch }}-musl"
