@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"gopkg.in/ini.v1"
 )
 
@@ -28,12 +27,6 @@ func (k *APIKey) UnmarshalText(text []byte) (err error) {
 		return errors.New("invalid api key length")
 	}
 	return nil
-}
-
-type Settings struct {
-	ID       uuid.UUID
-	CertHome string
-	Key      APIKey
 }
 
 type CertInfo struct {

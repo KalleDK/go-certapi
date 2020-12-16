@@ -10,11 +10,20 @@ import (
 
 	"github.com/KalleDK/go-certapi/certapi"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 const SETTINGSPATH = "/etc/certmgr.conf"
 
-func loadSettings() (*certapi.Settings, error) {
+type Settings struct {
+	ID         uuid.UUID
+	CertHome   string
+	Key        certapi.APIKey
+	ServerCert string
+	ServerKey  string
+}
+
+func loadSettings() (*Settings, error) {
 	path := SETTINGSPATH
 	if len(os.Args) > 1 {
 		path = os.Args[1]
@@ -25,7 +34,7 @@ func loadSettings() (*certapi.Settings, error) {
 	if err != nil {
 		return nil, err
 	}
-	var settings certapi.Settings
+	var settings Settings
 	if err := json.NewDecoder(fp).Decode(&settings); err != nil {
 		return nil, err
 	}
@@ -124,5 +133,10 @@ func main() {
 		}
 	})
 
-	r.Run()
+	if settings.ServerCert == "" {
+		r.Run(":80")
+	} else {
+		r.RunTLS(":443", settings.ServerCert, settings.ServerKey)
+	}
+
 }
