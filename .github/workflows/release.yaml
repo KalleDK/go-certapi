@@ -19,20 +19,3 @@ jobs:
         goarch: ${{ matrix.goarch }}
         project_path: cmd/certmgr
         extra_files: LICENSE
-  release-musl:
-    name: release musl
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        goos: [linux]
-        goarch: [amd64]
-    steps:
-    - uses: actions/checkout@v2
-    - uses: ngs/go-release.action@v1.0.1
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        goos: ${{ matrix.goos }}
-        goarch: ${{ matrix.goarch }}
-        CMD_PATH: cmd/certmgr
-        extra_files: LICENSE
-        NAME: "go-certapi-${{ matrix.goos }}-${{ matrix.goarch }}-musl"
