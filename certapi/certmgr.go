@@ -1,4 +1,4 @@
-package certmgr
+package certapi
 
 import (
 	"bytes"

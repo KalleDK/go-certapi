@@ -8,13 +8,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/KalleDK/go-certapi/certmgr"
+	"github.com/KalleDK/go-certapi/certapi"
 	"github.com/gin-gonic/gin"
 )
 
 const SETTINGSPATH = "/etc/certmgr.conf"
 
-func loadSettings() (*certmgr.Settings, error) {
+func loadSettings() (*certapi.Settings, error) {
 	path := SETTINGSPATH
 	if len(os.Args) > 1 {
 		path = os.Args[1]
@@ -25,7 +25,7 @@ func loadSettings() (*certmgr.Settings, error) {
 	if err != nil {
 		return nil, err
 	}
-	var settings certmgr.Settings
+	var settings certapi.Settings
 	if err := json.NewDecoder(fp).Decode(&settings); err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func main() {
 
 	fmt.Printf("CertHome: %s\n", settings.CertHome)
 
-	ch := certmgr.CertHome{
+	ch := certapi.CertHome{
 		Path: settings.CertHome,
 		Key:  settings.Key,
 	}
