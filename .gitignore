@@ -1,3 +1,7 @@
+cmd/certmgr/certs
+cmd/certmgr/settings.conf
+scripts/ini/demo.ini
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
