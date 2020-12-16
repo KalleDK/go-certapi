@@ -3,12 +3,11 @@ on:
     types: [created]
 
 jobs:
-  release-linux-amd64:
-    name: release linux/amd64
+  release-glibc:
+    name: release glibc
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # build and publish in parallel: linux/386, linux/amd64, windows/386, windows/amd64, darwin/386, darwin/amd64 
         goos: [linux, windows, darwin]
         goarch: ["386", amd64]
     steps:
@@ -20,3 +19,20 @@ jobs:
         goarch: ${{ matrix.goarch }}
         project_path: cmd/certmgr
         extra_files: LICENSE
+  release-musl:
+    name: release musl
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux]
+        goarch: [amd64]
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ngs/go-release.action@v1.0.1
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        goos: ${{ matrix.goos }}
+        goarch: ${{ matrix.goarch }}
+        project_path: cmd/certmgr
+        extra_files: LICENSE
+        NAME: "go-certapi-${{ matrix.goos }}-${{ matrix.goarch }}-musl"
