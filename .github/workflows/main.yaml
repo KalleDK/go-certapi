@@ -1,0 +1,25 @@
+on: push
+
+jobs:
+  create-release:
+    name: create relase
+    outputs:
+      releaseuri: ${{ steps.lia.outputs.uri }}
+    steps:
+    - name: List Again
+      id: lia
+      run: echo "::set-output name=uri::https://flaf.dk"
+  release-glibc:
+    name: release glibc
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v2
+    - name: Run Golang
+      uses: docker://golang:alpine
+      with:
+        args: go build ./cmd/certmgr
+    - name: List Again
+      run: |
+        echo ${{ needs.create-release.outputs.releaseuri }}
