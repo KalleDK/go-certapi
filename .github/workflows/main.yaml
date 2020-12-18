@@ -38,6 +38,10 @@ jobs:
           - goos: linux
             goarch: 386
             dockertag: alpine
+        exclude:
+          - goos: darwin
+            goarch: "386"
+            dockertag: latest
     steps:
     - name: Checkout source code
       uses: actions/checkout@v2
