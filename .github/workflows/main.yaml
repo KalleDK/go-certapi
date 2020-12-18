@@ -3,6 +3,7 @@ on: push
 jobs:
   create-release:
     name: create relase
+    runs-on: ubuntu-latest
     outputs:
       releaseuri: ${{ steps.lia.outputs.uri }}
     steps:
