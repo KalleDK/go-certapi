@@ -41,8 +41,17 @@ jobs:
     steps:
     - name: Checkout source code
       uses: actions/checkout@v2
-    - name: Build Project
-      uses: docker://golang:${{ matrix.dockertag }}
+    - name: Build Alpine
+      if: matrix.dockertag == 'alpine'
+      uses: docker://golang:alpine
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+      with:
+        args: go build ./cmd/certmgr
+    - name: Build Latest
+      if: matrix.dockertag == 'latest'
+      uses: docker://golang:latest
       env:
         GOOS: ${{ matrix.goos }}
         GOARCH: ${{ matrix.goarch }}
