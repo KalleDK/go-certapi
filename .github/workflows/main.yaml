@@ -17,7 +17,7 @@ jobs:
     strategy:
       matrix:
         goos: [linux]
-        goarch: ["386", amd64]
+        goarch: [amd64]
     steps:
     - name: Checkout source code
       uses: actions/checkout@v2
@@ -28,27 +28,36 @@ jobs:
         GOARCH: ${{ matrix.goarch }}
       with:
         args: go build ./cmd/certmgr
-    - name: List Again
+    - name: Pack artifacts
       run: |
-        echo ${{ needs.create_release.outputs.upload_url }}
-  build_glibc:
-    name: Build with glibc
-    needs: create_release
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        goos: [linux]
-        goarch: ["386", amd64]
-    steps:
-    - name: Checkout source code
-      uses: actions/checkout@v2
-    - name: Build Project
-      uses: docker://golang:latest
-      env:
-        GOOS: ${{ matrix.goos }}
-        GOARCH: ${{ matrix.goarch }}
+        tar cvfz certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-musl.tar.gz certmgr
+        sha256sum certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-musl.tar.gz | cut -d ' ' -f 1 > certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-musl.tar.gz.sha256
+        md5sum certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-musl.tar.gz | cut -d ' ' -f 1 > certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-musl.tar.gz.md5
+    - name: Upload Assets
+      uses: actions/upload-artifact@v2
       with:
-        args: go build ./cmd/certmgr
-    - name: List Again
-      run: |
-        echo ${{ needs.create_release.outputs.upload_url }}
+        path: |
+          certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-musl.tar.gz
+          certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-musl.tar.gz.sha256
+          certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-musl.tar.gz.md5
+#  build_glibc:
+#    name: Build with glibc
+#    needs: create_release
+#    runs-on: ubuntu-latest
+#    strategy:
+#      matrix:
+#        goos: [linux]
+#        goarch: [amd64]
+#    steps:
+#    - name: Checkout source code
+#      uses: actions/checkout@v2
+#    - name: Build Project
+#      uses: docker://golang:latest
+#      env:
+#        GOOS: ${{ matrix.goos }}
+#        GOARCH: ${{ matrix.goarch }}
+#      with:
+#        args: go build ./cmd/certmgr
+#    - name: List Again
+#      run: |
+#        echo ${{ needs.create_release.outputs.upload_url }}
