@@ -81,24 +81,24 @@ jobs:
         sha256sum ${RELEASE_ASSET} | cut -d ' ' -f 1 > ${RELEASE_ASSET}.sha256
         md5sum ${RELEASE_ASSET} | cut -d ' ' -f 1 > ${RELEASE_ASSET}.md5
         RELEASE_ASSET_PATH=${BUILD_ARTIFACTS_FOLDER}/${RELEASE_ASSET}
-        echo ::set-output name=release_asset::${RELEASE_ASSET}
-        echo ::set-output name=release_asset_name::${RELEASE_ASSET_NAME}
-        echo ::set-output name=release_asset_path::${RELEASE_ASSET_PATH}
-        echo ::set-output name=media_type::${MEDIA_TYPE}
+        echo "::set-output name=release_asset::${RELEASE_ASSET}"
+        echo "::set-output name=release_asset_name::${RELEASE_ASSET_NAME}"
+        echo "::set-output name=release_asset_path::${RELEASE_ASSET_PATH}"
+        echo "::set-output name=media_type::${MEDIA_TYPE}"
     - name: Upload Assets
       uses: actions/upload-artifact@v2
       with:
-        name: ${{ steps.pack_artifacts.output.release_asset_name }}
+        name: ${{ steps.pack_artifacts.outputs.release_asset_name }}
         path: |
-          ${{ steps.pack_artifacts.output.release_asset_path }}
-          ${{ steps.pack_artifacts.output.release_asset_path }}.sha256
-          ${{ steps.pack_artifacts.output.release_asset_path }}.md5
+          ${{ steps.pack_artifacts.outputs.release_asset_path }}
+          ${{ steps.pack_artifacts.outputs.release_asset_path }}.sha256
+          ${{ steps.pack_artifacts.outputs.release_asset_path }}.md5
     - name: Uploade Release Files
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.create_release.outputs.upload_url }}
-        asset_name: ${{ steps.pack_artifacts.output.release_asset }}
-        asset_path: ${{ steps.pack_artifacts.output.release_asset_path }}
-        asset_content_type: ${{ steps.pack_artifacts.output.media_type }}
+        asset_name: ${{ steps.pack_artifacts.outputs.release_asset }}
+        asset_path: ${{ steps.pack_artifacts.outputs.release_asset_path }}
+        asset_content_type: ${{ steps.pack_artifacts.outputs.media_type }}
