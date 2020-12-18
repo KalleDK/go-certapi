@@ -70,7 +70,7 @@ jobs:
         BINARY_NAME=certmgr
         BINARY_EXT=$(if [ "${{ matrix.goos }}" = "windows" ]; then echo ".exe"; else echo ""; fi)
         BINARY=${BINARY_NAME}${BINARY_EXT}
-        RELEASE_ASSET_NAME=${BINARY_NAME}-${RELEASE_TAG}-${{ matrix.goos }}-${{ matrix.goarch }}-${LIBC}
+        RELEASE_ASSET_NAME=${BINARY_NAME}-${RELEASE_TAG}-${{ matrix.goos }}-${LIBC}-${{ matrix.goarch }}
         RELEASE_ASSET_EXT=$(if [ "${{ matrix.goos }}" = "windows" ]; then echo ".zip"; else echo ".tar.gz"; fi)
         RELEASE_ASSET=${RELEASE_ASSET_NAME}${RELEASE_ASSET_EXT}
         BUILD_ARTIFACTS_FOLDER=build-artifacts-$(date +%s)
