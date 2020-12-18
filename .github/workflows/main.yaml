@@ -22,83 +22,70 @@ jobs:
         release_name: Release ${{ github.ref }}
         draft: false
         prerelease: false
-  build_musl:
+  build:
     name: Build with musl
     needs: create_release
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        goos: [linux]
+        goos: [linux, windows, darwin]
         goarch: [amd64, "386"]
+        dockertag: [latest]
+        include:
+          - goos: linux
+            goarch: amd64
+            dockertag: alpine
+          - goos: linux
+            goarch: 386
+            dockertag: alpine
     steps:
     - name: Checkout source code
       uses: actions/checkout@v2
     - name: Build Project
-      uses: docker://golang:alpine
+      uses: docker://golang:${{ matrix.dockertag }}
       env:
         GOOS: ${{ matrix.goos }}
         GOARCH: ${{ matrix.goarch }}
       with:
         args: go build ./cmd/certmgr
     - name: Pack artifacts
+      id: pack_artifacts
       run: |
-        tar cvfz certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-musl.tar.gz certmgr
-        sha256sum certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-musl.tar.gz | cut -d ' ' -f 1 > certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-musl.tar.gz.sha256
-        md5sum certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-musl.tar.gz | cut -d ' ' -f 1 > certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-musl.tar.gz.md5
+        RELEASE_TAG=$(basename ${GITHUB_REF})
+        LIBC=$(if [ "${{ matrix.dockertag }}" = "alpine" ]; then echo "musl"; else echo "glibc"; fi)
+        MEDIA_TYPE=$(if [ "${{ matrix.goos }}" = "windows" ]; then echo "application/zip"; else echo "application/gzip"; fi)
+        BINARY_NAME=certmgr
+        BINARY_EXT=$(if [ "${{ matrix.goos }}" = "windows" ]; then echo ".exe"; else echo ""; fi)
+        BINARY=${BINARY_NAME}${BINARY_EXT}
+        RELEASE_ASSET_NAME=${BINARY_NAME}-${RELEASE_TAG}-${{ matrix.goos }}-${{ matrix.goarch }}-${LIBC}
+        RELEASE_ASSET_EXT=$(if [ "${{ matrix.goos }}" = "windows" ]; then echo ".zip"; else echo ".tar.gz"; fi)
+        RELEASE_ASSET=${RELEASE_ASSET_NAME}${RELEASE_ASSET_EXT}
+        BUILD_ARTIFACTS_FOLDER=build-artifacts-$(date +%s)
+	mkdir -p ${BUILD_ARTIFACTS_FOLDER}
+	cp ${BINARY} ${BUILD_ARTIFACTS_FOLDER}/
+	cd ${BUILD_ARTIFACTS_FOLDER}
+        tar cvfz ${RELEASE_ASSET} *
+        sha256sum ${RELEASE_ASSET} | cut -d ' ' -f 1 > ${RELEASE_ASSET}.sha256
+        md5sum ${RELEASE_ASSET} | cut -d ' ' -f 1 > ${RELEASE_ASSET}.md5
+        RELEASE_ASSET_PATH=${BUILD_ARTIFACTS_FOLDER}/${RELEASE_ASSET}
+        echo ::set-output release_asset::${RELEASE_ASSET}
+        echo ::set-output release_asset_name::${RELEASE_ASSET_NAME}
+        echo ::set-output release_asset_path::${RELEASE_ASSET_PATH}
+        echo ::set-output media_type::${MEDIA_TYPE}
     - name: Upload Assets
       uses: actions/upload-artifact@v2
       with:
-        name: certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-musl
+        name: ${{ steps.pack_artifacts.output.release_asset_name }}
         path: |
-          certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-musl.tar.gz
-          certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-musl.tar.gz.sha256
-          certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-musl.tar.gz.md5
+          ${{ steps.pack_artifacts.output.release_asset_path }}
+          ${{ steps.pack_artifacts.output.release_asset_path }}.sha256
+          ${{ steps.pack_artifacts.output.release_asset_path }}.md5
     - name: Uploade Release Files
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.create_release.outputs.upload_url }}
-        asset_path: ./certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-musl.tar.gz
-        asset_name: certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-musl.tar.gz
-        asset_content_type: application/gzip
-  build_glibc:
-    name: Build with glibc
-    needs: create_release
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        goos: [linux]
-        goarch: [amd64, "386"]
-    steps:
-    - name: Checkout source code
-      uses: actions/checkout@v2
-    - name: Build Project
-      uses: docker://golang:latest
-      env:
-        GOOS: ${{ matrix.goos }}
-        GOARCH: ${{ matrix.goarch }}
-      with:
-        args: go build ./cmd/certmgr
-    - name: Pack artifacts
-      run: |
-        tar cvfz certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-glibc.tar.gz certmgr
-        sha256sum certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-glibc.tar.gz | cut -d ' ' -f 1 > certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-glibc.tar.gz.sha256
-        md5sum certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-glibc.tar.gz | cut -d ' ' -f 1 > certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-glibc.tar.gz.md5
-    - name: Upload Assets
-      uses: actions/upload-artifact@v2
-      with:
-        name: certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-glibc
-        path: |
-          certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-glibc.tar.gz
-          certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-glibc.tar.gz.sha256
-          certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-glibc.tar.gz.md5
-    - name: Uploade Release Files
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create_release.outputs.upload_url }}
-        asset_path: ./certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-glibc.tar.gz
-        asset_name: certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-glibc.tar.gz
-        asset_content_type: application/gzip
+        asset_name: ${{ steps.pack_artifacts.output.release_asset }}
+        asset_path: ${{ steps.pack_artifacts.output.release_asset_path }}
+        asset_content_type: ${{ steps.pack_artifacts.output.media_type }}
