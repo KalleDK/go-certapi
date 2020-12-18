@@ -1,4 +1,9 @@
-on: push
+on:
+  push:
+    tags:
+    - 'v*'
+
+name: Upload Release Asset
 
 jobs:
   create_release:
@@ -9,7 +14,14 @@ jobs:
     steps:
     - name: Create Release
       id: create_release
-      run: echo "::set-output name=upload_url::https://flaf.dk"
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
   build_musl:
     name: Build with musl
     needs: create_release
@@ -41,6 +53,15 @@ jobs:
           certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-musl.tar.gz
           certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-musl.tar.gz.sha256
           certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-musl.tar.gz.md5
+    - name: Uploade Release Files
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create_release.outputs.upload_url }}
+        asset_path: ./certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-musl.tar.gz
+        asset_name: certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-musl.tar.gz
+        asset_content_type: application/gzip
   build_glibc:
     name: Build with glibc
     needs: create_release
@@ -72,3 +93,12 @@ jobs:
           certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-glibc.tar.gz
           certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-glibc.tar.gz.sha256
           certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-glibc.tar.gz.md5
+    - name: Uploade Release Files
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create_release.outputs.upload_url }}
+        asset_path: ./certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-glibc.tar.gz
+        asset_name: certmgr-latest-${{ matrix.goos }}-${{ matrix.goarch }}-glibc.tar.gz
+        asset_content_type: application/gzip
