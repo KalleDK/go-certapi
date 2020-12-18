@@ -1,24 +1,31 @@
 on: push
 
 jobs:
-  create-release:
-    name: create relase
+  create_release:
+    name: Create Relase
     runs-on: ubuntu-latest
     outputs:
-      releaseuri: ${{ steps.lia.outputs.uri }}
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
-    - name: List Again
-      id: lia
-      run: echo "::set-output name=uri::https://flaf.dk"
-  release-glibc:
-    name: release glibc
-    needs: create-release
+    - name: Create Release
+      id: create_release
+      run: echo "::set-output name=upload_url::https://flaf.dk"
+  build_glibc:
+    name: B
+    needs: create_release
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux]
+        goarch: ["386", amd64]
     steps:
     - name: Checkout source code
       uses: actions/checkout@v2
-    - name: Run Golang
+    - name: Build Project
       uses: docker://golang:alpine
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
       with:
         args: go build ./cmd/certmgr
     - name: List Again
