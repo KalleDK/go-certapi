@@ -61,9 +61,9 @@ jobs:
         RELEASE_ASSET_EXT=$(if [ "${{ matrix.goos }}" = "windows" ]; then echo ".zip"; else echo ".tar.gz"; fi)
         RELEASE_ASSET=${RELEASE_ASSET_NAME}${RELEASE_ASSET_EXT}
         BUILD_ARTIFACTS_FOLDER=build-artifacts-$(date +%s)
-	mkdir -p ${BUILD_ARTIFACTS_FOLDER}
-	cp ${BINARY} ${BUILD_ARTIFACTS_FOLDER}/
-	cd ${BUILD_ARTIFACTS_FOLDER}
+        mkdir -p ${BUILD_ARTIFACTS_FOLDER}
+        cp ${BINARY} ${BUILD_ARTIFACTS_FOLDER}/
+        cd ${BUILD_ARTIFACTS_FOLDER}
         tar cvfz ${RELEASE_ASSET} *
         sha256sum ${RELEASE_ASSET} | cut -d ' ' -f 1 > ${RELEASE_ASSET}.sha256
         md5sum ${RELEASE_ASSET} | cut -d ' ' -f 1 > ${RELEASE_ASSET}.md5
