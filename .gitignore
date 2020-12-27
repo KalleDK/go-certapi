@@ -1,5 +1,7 @@
 cmd/certmgr/certs
-cmd/certmgr/settings.conf
+cmd/certmgr/*.conf
+cmd/certcli/certs
+cmd/certcli/*.conf
 scripts/ini/demo.ini
 
 # Binaries for programs and plugins
