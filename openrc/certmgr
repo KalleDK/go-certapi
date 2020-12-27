@@ -18,7 +18,7 @@ start() {
 
     ebegin "Starting ${SVCNAME}"
     start-stop-daemon --start \
-            --makepidfile \
+            --make-pidfile \
             --pidfile ${PIDFILE} \
             --exec ${CERTMGR} \
             --background
