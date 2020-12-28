@@ -77,7 +77,7 @@ jobs:
         mkdir -p ${BUILD_ARTIFACTS_FOLDER}
         cp ${BINARY} ${BUILD_ARTIFACTS_FOLDER}/
         cd ${BUILD_ARTIFACTS_FOLDER}
-        tar cvfz ${RELEASE_ASSET} *
+        if [ "${{ matrix.goos }}" = "windows" ]; then zip -9r ${RELEASE_ASSET} *; else tar cvfz ${RELEASE_ASSET} *; fi
         sha256sum ${RELEASE_ASSET} | cut -d ' ' -f 1 > ${RELEASE_ASSET}.sha256
         md5sum ${RELEASE_ASSET} | cut -d ' ' -f 1 > ${RELEASE_ASSET}.md5
         RELEASE_ASSET_PATH=${BUILD_ARTIFACTS_FOLDER}/${RELEASE_ASSET}
@@ -93,7 +93,7 @@ jobs:
           ${{ steps.pack_artifacts.outputs.release_asset_path }}
           ${{ steps.pack_artifacts.outputs.release_asset_path }}.sha256
           ${{ steps.pack_artifacts.outputs.release_asset_path }}.md5
-    - name: Uploade Release Files
+    - name: Uploade Release File
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -102,6 +102,24 @@ jobs:
         asset_name: ${{ steps.pack_artifacts.outputs.release_asset }}
         asset_path: ${{ steps.pack_artifacts.outputs.release_asset_path }}
         asset_content_type: ${{ steps.pack_artifacts.outputs.media_type }}
+    - name: Uploade Release File SHA256
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create_release.outputs.upload_url }}
+        asset_name: ${{ steps.pack_artifacts.outputs.release_asset }}.sha256
+        asset_path: ${{ steps.pack_artifacts.outputs.release_asset_path }}.sha256
+        asset_content_type: text/plain
+    - name: Uploade Release File MD5
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create_release.outputs.upload_url }}
+        asset_name: ${{ steps.pack_artifacts.outputs.release_asset }}.md5
+        asset_path: ${{ steps.pack_artifacts.outputs.release_asset_path }}.md5
+        asset_content_type: text/plain
   build_mgr:
     name: Build Manager
     needs: create_release
@@ -157,7 +175,7 @@ jobs:
         mkdir -p ${BUILD_ARTIFACTS_FOLDER}
         cp ${BINARY} ${BUILD_ARTIFACTS_FOLDER}/
         cd ${BUILD_ARTIFACTS_FOLDER}
-        tar cvfz ${RELEASE_ASSET} *
+        if [ "${{ matrix.goos }}" = "windows" ]; then zip -9r ${RELEASE_ASSET} *; else tar cvfz ${RELEASE_ASSET} *; fi
         sha256sum ${RELEASE_ASSET} | cut -d ' ' -f 1 > ${RELEASE_ASSET}.sha256
         md5sum ${RELEASE_ASSET} | cut -d ' ' -f 1 > ${RELEASE_ASSET}.md5
         RELEASE_ASSET_PATH=${BUILD_ARTIFACTS_FOLDER}/${RELEASE_ASSET}
@@ -173,7 +191,7 @@ jobs:
           ${{ steps.pack_artifacts.outputs.release_asset_path }}
           ${{ steps.pack_artifacts.outputs.release_asset_path }}.sha256
           ${{ steps.pack_artifacts.outputs.release_asset_path }}.md5
-    - name: Uploade Release Files
+    - name: Uploade Release File
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -182,3 +200,21 @@ jobs:
         asset_name: ${{ steps.pack_artifacts.outputs.release_asset }}
         asset_path: ${{ steps.pack_artifacts.outputs.release_asset_path }}
         asset_content_type: ${{ steps.pack_artifacts.outputs.media_type }}
+    - name: Uploade Release File SHA256
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create_release.outputs.upload_url }}
+        asset_name: ${{ steps.pack_artifacts.outputs.release_asset }}.sha256
+        asset_path: ${{ steps.pack_artifacts.outputs.release_asset_path }}.sha256
+        asset_content_type: text/plain
+    - name: Uploade Release File MD5
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create_release.outputs.upload_url }}
+        asset_name: ${{ steps.pack_artifacts.outputs.release_asset }}.md5
+        asset_path: ${{ steps.pack_artifacts.outputs.release_asset_path }}.md5
+        asset_content_type: text/plain
