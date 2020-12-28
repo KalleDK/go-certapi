@@ -1,6 +1,6 @@
 cmd/certmgr/certs
 cmd/certmgr/*.conf
-cmd/certcli/certs
+cmd/certcli/data
 cmd/certcli/*.conf
 scripts/ini/demo.ini
 
