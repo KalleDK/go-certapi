@@ -22,8 +22,88 @@ jobs:
         release_name: Release ${{ github.ref }}
         draft: false
         prerelease: false
-  build:
-    name: Build with musl
+  build_client:
+    name: Build Client
+    needs: create_release
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: [amd64, "386"]
+        libc: [glibc]
+        include:
+          - goos: linux
+            goarch: amd64
+            libc: musl
+          - goos: linux
+            goarch: 386
+            libc: musl
+        exclude:
+          - goos: darwin
+            goarch: "386"
+            libc: glibc
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v2
+    - name: Build musl
+      if: matrix.libc == 'musl'
+      uses: docker://golang:alpine
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+      with:
+        args: go build ./cmd/certcli
+    - name: Build glibc
+      if: matrix.libc == 'glibc'
+      uses: docker://golang:latest
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+      with:
+        args: go build ./cmd/certcli
+    - name: Pack artifacts
+      id: pack_artifacts
+      run: |
+        RELEASE_TAG=$(basename ${GITHUB_REF})
+        LIBC="${{ matrix.libc }}"
+        MEDIA_TYPE=$(if [ "${{ matrix.goos }}" = "windows" ]; then echo "application/zip"; else echo "application/gzip"; fi)
+        BINARY_NAME=certcli
+        BINARY_EXT=$(if [ "${{ matrix.goos }}" = "windows" ]; then echo ".exe"; else echo ""; fi)
+        BINARY=${BINARY_NAME}${BINARY_EXT}
+        RELEASE_ASSET_NAME=${BINARY_NAME}-${RELEASE_TAG}-${{ matrix.goos }}-${LIBC}-${{ matrix.goarch }}
+        RELEASE_ASSET_EXT=$(if [ "${{ matrix.goos }}" = "windows" ]; then echo ".zip"; else echo ".tar.gz"; fi)
+        RELEASE_ASSET=${RELEASE_ASSET_NAME}${RELEASE_ASSET_EXT}
+        BUILD_ARTIFACTS_FOLDER=build-artifacts-$(date +%s)
+        mkdir -p ${BUILD_ARTIFACTS_FOLDER}
+        cp ${BINARY} ${BUILD_ARTIFACTS_FOLDER}/
+        cd ${BUILD_ARTIFACTS_FOLDER}
+        tar cvfz ${RELEASE_ASSET} *
+        sha256sum ${RELEASE_ASSET} | cut -d ' ' -f 1 > ${RELEASE_ASSET}.sha256
+        md5sum ${RELEASE_ASSET} | cut -d ' ' -f 1 > ${RELEASE_ASSET}.md5
+        RELEASE_ASSET_PATH=${BUILD_ARTIFACTS_FOLDER}/${RELEASE_ASSET}
+        echo "::set-output name=release_asset::${RELEASE_ASSET}"
+        echo "::set-output name=release_asset_name::${RELEASE_ASSET_NAME}"
+        echo "::set-output name=release_asset_path::${RELEASE_ASSET_PATH}"
+        echo "::set-output name=media_type::${MEDIA_TYPE}"
+    - name: Upload Assets
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ steps.pack_artifacts.outputs.release_asset_name }}
+        path: |
+          ${{ steps.pack_artifacts.outputs.release_asset_path }}
+          ${{ steps.pack_artifacts.outputs.release_asset_path }}.sha256
+          ${{ steps.pack_artifacts.outputs.release_asset_path }}.md5
+    - name: Uploade Release Files
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create_release.outputs.upload_url }}
+        asset_name: ${{ steps.pack_artifacts.outputs.release_asset }}
+        asset_path: ${{ steps.pack_artifacts.outputs.release_asset_path }}
+        asset_content_type: ${{ steps.pack_artifacts.outputs.media_type }}
+  build_mgr:
+    name: Build Manager
     needs: create_release
     runs-on: ubuntu-latest
     strategy:
