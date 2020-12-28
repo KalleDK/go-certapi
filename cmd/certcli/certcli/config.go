@@ -116,6 +116,15 @@ type CertStore struct {
 	Path string
 }
 
+func (s CertStore) Env() []string {
+	return []string{
+		"CERT_STATE=" + filepath.Join(s.Path, "state"),
+		"CERT_CERT=" + filepath.Join(s.Path, "server.cer"),
+		"CERT_KEY=" + filepath.Join(s.Path, "server.key"),
+		"CERT_FULL=" + filepath.Join(s.Path, "fullchain.cer"),
+	}
+}
+
 func (s CertStore) Remove() error { return os.RemoveAll(s.Path) }
 
 func (s CertStore) LoadState(state *certapi.CertInfo) error {

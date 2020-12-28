@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path"
 
 	"github.com/KalleDK/go-certapi/certapi"
@@ -100,6 +101,14 @@ to quickly create a Cobra application.`,
 
 		domain := args[0]
 		dir := viper.GetString("dir")
+		rcmd, err := cmd.Flags().GetString("reloadcmd")
+		if err != nil {
+			log.Panic(err)
+		}
+		rargs, err := cmd.Flags().GetStringSlice("arg")
+		if err != nil {
+			log.Panic(err)
+		}
 
 		dstore := certcli.DomainStore{Path: dir}
 
@@ -116,6 +125,10 @@ to quickly create a Cobra application.`,
 
 		info := certcli.CertInfo{
 			Server: viper.GetString("server"),
+		}
+		if rcmd != "" {
+			info.ReloadCmd = rcmd
+			info.Args = rargs
 		}
 
 		baseurl, err := url.Parse(info.Server)
@@ -161,12 +174,24 @@ to quickly create a Cobra application.`,
 			if err := cstore.SaveState(state); err != nil {
 				log.Panic(err)
 			}
+
+			if info.ReloadCmd != "" {
+				cmd := exec.Command(info.ReloadCmd, info.Args...)
+				cmd.Env = append(os.Environ(), cstore.Env()...)
+				stdoutStderr, err := cmd.CombinedOutput()
+				if err != nil {
+					log.Fatal(err)
+				}
+				fmt.Printf("%s\n", stdoutStderr)
+			}
 		}
 
 	},
 }
 
 func init() {
+	addCmd.Flags().StringSliceP("arg", "a", nil, "Args to reload command")
+	addCmd.Flags().StringP("reloadcmd", "r", "", "ReloadCmd")
 	addCmd.Flags().StringP("server", "s", "https://ca.example.com", "Certification Server")
 	viper.BindPFlag("server", addCmd.Flags().Lookup("server"))
 	rootCmd.AddCommand(addCmd)

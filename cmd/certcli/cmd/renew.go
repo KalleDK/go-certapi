@@ -1,8 +1,11 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 	"net/url"
+	"os"
+	"os/exec"
 	"time"
 
 	"github.com/KalleDK/go-certapi/certapi"
@@ -55,6 +58,15 @@ func renewDomain(domain string, force bool, store certcli.DomainStore) error {
 	}
 	if err := cstore.SaveState(newstate); err != nil {
 		return err
+	}
+	if info.ReloadCmd != "" {
+		cmd := exec.Command(info.ReloadCmd, info.Args...)
+		cmd.Env = append(os.Environ(), cstore.Env()...)
+		stdoutStderr, err := cmd.CombinedOutput()
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("%s\n", stdoutStderr)
 	}
 	log.Println(domain + " renewed")
 	return nil
