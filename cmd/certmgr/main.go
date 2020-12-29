@@ -95,6 +95,16 @@ func main() {
 		}
 	})
 
+	certs.GET("/next", func(c *gin.Context) {
+		domain := c.GetString("domain")
+		info, err := ch.Info(domain)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		} else {
+			c.String(200, "%d", info.NextRenewTime.Unix())
+		}
+	})
+
 	certs.GET("/key", func(c *gin.Context) {
 		domain := c.GetString("domain")
 		keystr := c.GetHeader("Authorization")
