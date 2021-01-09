@@ -29,6 +29,10 @@ func (k *APIKey) UnmarshalText(text []byte) (err error) {
 	return nil
 }
 
+func (k APIKey) String() string {
+	return fmt.Sprintf("%x", []byte(k[:]))
+}
+
 type CertInfo struct {
 	StartDate     time.Time
 	NextRenewTime time.Time
