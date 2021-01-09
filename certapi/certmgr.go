@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -19,7 +18,9 @@ import (
 type APIKey [sha256.Size]byte
 
 func (k APIKey) MarshalText() (text []byte, err error) {
-	return []byte(fmt.Sprintf("%x", k)), nil
+	var buffer [64]byte
+	hex.Encode(buffer[:], k[:])
+	return buffer[:], nil
 }
 
 func (k *APIKey) UnmarshalText(text []byte) (err error) {
@@ -30,7 +31,9 @@ func (k *APIKey) UnmarshalText(text []byte) (err error) {
 }
 
 func (k APIKey) String() string {
-	return fmt.Sprintf("%x", []byte(k[:]))
+	var buffer [64]byte
+	hex.Encode(buffer[:], k[:])
+	return string(buffer[:])
 }
 
 type CertInfo struct {
