@@ -4,6 +4,8 @@ cmd/certcli/data
 cmd/certcli/*.conf
 scripts/ini/demo.ini
 
+data
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
