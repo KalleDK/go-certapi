@@ -2,95 +2,102 @@ package certapi
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
-	"io"
-	"io/ioutil"
+	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
-	"time"
 
-	"gopkg.in/ini.v1"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
-type APIKey [sha256.Size]byte
-
-func (k APIKey) MarshalText() (text []byte, err error) {
-	var buffer [64]byte
-	hex.Encode(buffer[:], k[:])
-	return buffer[:], nil
+type CertBackend interface {
+	GetCert(t CertType, domain string, key APIKey) (cert []byte, err error)
+	HasAccess(t CertType, domain string, key APIKey) bool
 }
 
-func (k *APIKey) UnmarshalText(text []byte) (err error) {
-	if n, err := hex.Decode(k[:], text); err != nil || n != sha256.Size {
-		return errors.New("invalid api key length")
-	}
-	return nil
+type CertMgr struct {
+	backend CertBackend
+	engine  *gin.Engine
 }
 
-func (k APIKey) String() string {
-	var buffer [64]byte
-	hex.Encode(buffer[:], k[:])
-	return string(buffer[:])
+func NewCertMgr(id uuid.UUID) (c CertMgr) {
+	c.engine = gin.Default()
+
+	c.engine.GET("/favicon.ico", serveFavicon)
+	c.engine.GET("/ping", servePing(id))
+
+	c.engine.GET("/cert/:domain/:certtype", serveCerts(c.backend))
+
+	return
 }
 
-type CertInfo struct {
-	StartDate     time.Time
-	NextRenewTime time.Time
-	Serial        string
+func serveKey(backend CertBackend) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		domain := c.GetString("domain")
+		apikey, _ := c.Get("apikey")
+
+		keyfile, err := ch.KeyFile(domain, keystr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		} else {
+			c.File(keyfile)
+		}
+
+	}
 }
 
-func (c *CertInfo) FromIni(r io.Reader) error {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
-	cfg, err := ini.Load(b)
-	if err != nil {
-		return err
-	}
-	section := cfg.Section("")
-
-	{
-		key, err := section.GetKey("Le_CertCreateTime")
-		if err != nil {
-			return err
-		}
-		v, err := key.Int64()
-		if err != nil {
-			return err
-		}
-		c.StartDate = time.Unix(v, 0)
+func parseAPIKey(c *gin.Context) (key APIKey) {
+	keystr := c.GetHeader("Authorization")
+	if len(keystr) < len("Bearer ") {
+		return APIKey{}
 	}
 
-	{
-		key, err := section.GetKey("Le_NextRenewTime")
-		if err != nil {
-			return err
-		}
-		v, err := key.Int64()
-		if err != nil {
-			return err
-		}
-		c.NextRenewTime = time.Unix(v, 0)
+	keystr = keystr[len("Bearer "):]
+	if err := key.UnmarshalText([]byte(keystr)); err != nil {
+		return APIKey{}
 	}
 
-	{
-		key, err := section.GetKey("Le_LinkCert")
-		if err != nil {
-			return err
-		}
-		v := key.String()
-		if err != nil {
-			return err
-		}
-		idx := strings.LastIndex(v, "/")
-		c.Serial = v[idx+1:]
-	}
+	return
+}
 
-	return nil
+func serveCerts(backend CertBackend) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		domain := c.Param("domain")
+		certtype := CertType(c.Param("certtype"))
+		key := parseAPIKey(c)
+
+		cert, err := backend.GetCert(certtype, domain, key)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		} else {
+
+			c.Writer.Header().Set("Content-Type", "application/x-pem-file")
+			c.Writer.WriteHeader(http.StatusOK)
+			c.Writer.Write(cert)
+		}
+	}
+}
+
+func servePing(id uuid.UUID) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": fmt.Sprintf("pong: %s", id),
+		})
+	}
+}
+
+func serveFavicon(c *gin.Context) {
+	const favicon = `<svg
+xmlns="http://www.w3.org/2000/svg"
+viewBox="0 0 16 16">
+
+<text x="0" y="14">🔒</text>
+</svg>`
+
+	c.Header("Content-Type", "image/svg+xml")
+	c.Writer.WriteString(favicon)
 }
 
 type CertHome struct {
@@ -104,7 +111,7 @@ func (ch CertHome) KeyFile(domain string, keystr string) (string, error) {
 		return "", errors.New("invalid api key 1")
 	}
 
-	if bytes.Compare(key[:], ch.Key[:]) != 0 {
+	if !bytes.Equal(key[:], ch.Key[:]) {
 		return "", errors.New("invalid api key 2")
 	}
 
