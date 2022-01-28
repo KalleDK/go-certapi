@@ -52,16 +52,22 @@ func (c *CertMgr) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	c.engine.ServeHTTP(w, req)
 }
 
-func NewCertMgr(id uuid.UUID, backend CertBackend) (c CertMgr) {
-	c.backend = backend
-	c.engine = gin.Default()
+func NewCertHandler(id uuid.UUID, backend CertBackend) http.Handler {
+	return NewCertMgr(id, backend)
+}
 
-	c.engine.GET("/favicon.ico", serveFavicon)
-	c.engine.GET("/ping", servePing(id))
-	c.engine.GET("/cert/:domain", serveCertInfo(c.backend))
-	c.engine.GET("/cert/:domain/:certtype", serveCerts(c.backend))
+func NewCertMgr(id uuid.UUID, backend CertBackend) *CertMgr {
+	mgr := &CertMgr{
+		backend: backend,
+		engine:  gin.Default(),
+	}
 
-	return
+	mgr.engine.GET("/favicon.ico", serveFavicon)
+	mgr.engine.GET("/ping", servePing(id))
+	mgr.engine.GET("/cert/:domain", serveCertInfo(backend))
+	mgr.engine.GET("/cert/:domain/:certtype", serveCerts(backend))
+
+	return mgr
 }
 
 func parseAPIKey(c *gin.Context) (key certapi.APIKey) {
