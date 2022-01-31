@@ -20,7 +20,7 @@ type AcmeBackend struct {
 	authdb map[certapi.APIKey]string
 }
 
-func (b *AcmeBackend) realname(domain string, ctype certapi.CertType) (string, error) {
+func (b *AcmeBackend) realname(domain string, ctype string) (string, error) {
 	switch ctype {
 	case certapi.Cert:
 		return fmt.Sprintf("%s.cer", domain), nil
@@ -86,29 +86,31 @@ func fromIni(b []byte) (c certapi.CertInfo, err error) {
 	return c, nil
 }
 
-func (b *AcmeBackend) GetCertInfo(domain string, key certapi.APIKey) (certinfo certapi.CertInfo, err error) {
-	apidomain, ok := b.authdb[key]
-	if !(ok && (domain == apidomain)) {
-		err = errors.New("invalid API key")
-		return
-	}
+func (b *AcmeBackend) GetItemInfo(domain string, itemtype string, apikey certapi.APIKey) (certinfo certapi.ItemInfo, err error) {
+	/*
+		apidomain, ok := b.authdb[apikey]
+		if !(ok && (domain == apidomain)) {
+			err = errors.New("invalid API key")
+			return
+		}
 
-	sub, err := fs.Sub(b.fs, domain)
-	if err != nil {
-		return
-	}
+		sub, err := fs.Sub(b.fs, domain)
+		if err != nil {
+			return
+		}
 
-	data, err := fs.ReadFile(sub, fmt.Sprintf("%s.conf", domain))
-	if err != nil {
-		return
-	}
-
-	return fromIni(data)
+		data, err := fs.ReadFile(sub, fmt.Sprintf("%s.conf", domain))
+		if err != nil {
+			return
+		}
+	*/
+	return
+	//return fromIni(data)
 
 }
 
-func (b *AcmeBackend) GetCertFile(domain string, t certapi.CertType, key certapi.APIKey) (cert certserver.CertFile, err error) {
-	apidomain, ok := b.authdb[key]
+func (b *AcmeBackend) GetItem(domain string, itemtype string, apikey certapi.APIKey) (cert certapi.Item, err error) {
+	apidomain, ok := b.authdb[apikey]
 	if !(ok && (domain == apidomain)) {
 		err = errors.New("invalid API key")
 		return
@@ -119,7 +121,7 @@ func (b *AcmeBackend) GetCertFile(domain string, t certapi.CertType, key certapi
 		return
 	}
 
-	name, err := b.realname(domain, t)
+	name, err := b.realname(domain, itemtype)
 	if err != nil {
 		return
 	}
@@ -149,5 +151,5 @@ func main() {
 		},
 		fs: os.DirFS("../../data"),
 	})
-	http.ListenAndServe(":8000", &c)
+	http.ListenAndServe(":8000", c)
 }

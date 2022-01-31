@@ -13,6 +13,7 @@ import (
 )
 
 var certMIME = map[string]string{
+	certapi.Info:        certapi.MimeTypeInfo,
 	certapi.Key:         certapi.MimeTypeKey,
 	certapi.Cert:        certapi.MimeTypeCert,
 	certapi.CertChain:   certapi.MimeTypeCertChain,
@@ -21,6 +22,7 @@ var certMIME = map[string]string{
 }
 
 var certName = map[string]string{
+	certapi.Info:        certapi.FilenameInfo,
 	certapi.Key:         certapi.FilenameKey,
 	certapi.Cert:        certapi.FilenameCert,
 	certapi.CertChain:   certapi.FilenameCertChain,
