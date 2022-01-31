@@ -12,39 +12,24 @@ import (
 	"github.com/google/uuid"
 )
 
-var CertName = map[certapi.CertType]string{
-	certapi.Key:         "certificate.key",
-	certapi.Cert:        "certificate.crt",
-	certapi.CertChain:   "certificate-chain.crt",
-	certapi.PKCS12:      "certificate.pfx",
-	certapi.PKCS12Chain: "certificate-chain.pfx",
+var certMIME = map[string]string{
+	certapi.Key:         certapi.MimeTypeKey,
+	certapi.Cert:        certapi.MimeTypeCert,
+	certapi.CertChain:   certapi.MimeTypeCertChain,
+	certapi.PKCS12:      certapi.MimeTypePKCS12,
+	certapi.PKCS12Chain: certapi.MimeTypePKCS12Chain,
 }
 
-var CertMIME = map[certapi.CertType]string{
-	certapi.Key:         "application/x-pem-file",
-	certapi.Cert:        "application/x-pem-file",
-	certapi.CertChain:   "application/x-pem-file",
-	certapi.PKCS12:      "application/x-pkcs12",
-	certapi.PKCS12Chain: "application/x-pkcs12",
-}
-
-type CertFileInfo struct {
-	ModTime time.Time
-	Size    int64
-}
-
-type CertFile struct {
-	CertFileInfo
-	Data []byte
-}
-
-type CertBackend interface {
-	GetCertFile(domain string, t certapi.CertType, key certapi.APIKey) (CertFile, error)
-	GetCertInfo(domain string, key certapi.APIKey) (certapi.CertInfo, error)
+var certName = map[string]string{
+	certapi.Key:         certapi.FilenameKey,
+	certapi.Cert:        certapi.FilenameCert,
+	certapi.CertChain:   certapi.FilenameCertChain,
+	certapi.PKCS12:      certapi.FilenamePKCS12,
+	certapi.PKCS12Chain: certapi.FilenamePKCS12Chain,
 }
 
 type CertMgr struct {
-	backend CertBackend
+	backend certapi.CertService
 	engine  *gin.Engine
 }
 
@@ -52,11 +37,11 @@ func (c *CertMgr) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	c.engine.ServeHTTP(w, req)
 }
 
-func NewCertHandler(id uuid.UUID, backend CertBackend) http.Handler {
+func NewCertHandler(id uuid.UUID, backend certapi.CertService) http.Handler {
 	return NewCertMgr(id, backend)
 }
 
-func NewCertMgr(id uuid.UUID, backend CertBackend) *CertMgr {
+func NewCertMgr(id uuid.UUID, backend certapi.CertService) *CertMgr {
 	mgr := &CertMgr{
 		backend: backend,
 		engine:  gin.Default(),
@@ -64,7 +49,6 @@ func NewCertMgr(id uuid.UUID, backend CertBackend) *CertMgr {
 
 	mgr.engine.GET("/favicon.ico", serveFavicon)
 	mgr.engine.GET("/ping", servePing(id))
-	mgr.engine.GET("/cert/:domain", serveCertInfo(backend))
 	mgr.engine.GET("/cert/:domain/:certtype", serveCerts(backend))
 
 	return mgr
@@ -96,41 +80,25 @@ func serveFile(c *gin.Context, filename string, modtime time.Time, contenttype s
 	c.Data(http.StatusOK, contenttype, data)
 }
 
-func serveCertInfo(backend CertBackend) func(c *gin.Context) {
+func serveCerts(backend certapi.CertService) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		domain := c.Param("domain")
+		certtype := c.Param("certtype")
 		key := parseAPIKey(c)
 
-		certinfo, err := backend.GetCertInfo(domain, key)
-		if err != nil {
-			serveError(c, err)
-			return
-		}
-
-		c.JSON(http.StatusOK, certinfo)
-
-	}
-}
-
-func serveCerts(backend CertBackend) func(c *gin.Context) {
-	return func(c *gin.Context) {
-		domain := c.Param("domain")
-		certtype := certapi.CertType(c.Param("certtype"))
-		key := parseAPIKey(c)
-
-		filename, ok := CertName[certtype]
+		filename, ok := certName[certtype]
 		if !ok {
 			serveError(c, errors.New("missing certname"))
 			return
 		}
 
-		contenttype, ok := CertMIME[certtype]
+		contenttype, ok := certMIME[certtype]
 		if !ok {
 			serveError(c, errors.New("missing certtype"))
 			return
 		}
 
-		certfile, err := backend.GetCertFile(domain, certtype, key)
+		certfile, err := backend.GetItem(domain, certtype, key)
 		if err != nil {
 			serveError(c, err)
 			return

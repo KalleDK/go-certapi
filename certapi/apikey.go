@@ -6,10 +6,10 @@ import (
 	"errors"
 )
 
-const keySize = sha256.Size
-const encodedSize = keySize * 2
+const APIKeySize = sha256.Size
+const encodedSize = APIKeySize * 2
 
-type APIKey [keySize]byte
+type APIKey [APIKeySize]byte
 
 func (k APIKey) MarshalText() (text []byte, err error) {
 	text = make([]byte, encodedSize)
@@ -18,7 +18,7 @@ func (k APIKey) MarshalText() (text []byte, err error) {
 }
 
 func (k *APIKey) UnmarshalText(text []byte) (err error) {
-	if n, err := hex.Decode(k[:], text); err != nil || n != keySize {
+	if n, err := hex.Decode(k[:], text); err != nil || n != APIKeySize {
 		return errors.New("invalid API key length")
 	}
 	return
