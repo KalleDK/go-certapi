@@ -87,6 +87,7 @@ func serveCerts(backend certapi.CertService) func(c *gin.Context) {
 		domain := c.Param("domain")
 		certtype := c.Param("certtype")
 		key := parseAPIKey(c)
+		remote_serial := c.GetHeader("If-None-Match")
 
 		filename, ok := certName[certtype]
 		if !ok {
@@ -98,6 +99,19 @@ func serveCerts(backend certapi.CertService) func(c *gin.Context) {
 		if !ok {
 			serveError(c, errors.New("missing certtype"))
 			return
+		}
+
+		serial, err := backend.GetSerial(domain, key)
+		if err != nil {
+			serveError(c, err)
+			return
+		}
+
+		if serial == remote_serial {
+			c.AbortWithStatus(http.StatusNotModified)
+			return
+		} else {
+			c.Writer.Header().Set("ETag", serial)
 		}
 
 		certfile, err := backend.GetItem(domain, certtype, key)
